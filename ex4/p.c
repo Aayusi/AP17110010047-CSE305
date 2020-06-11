@@ -1,140 +1,124 @@
-/* Recursive Descent Parser for the Expression Grammar:
-E -> TE’
-E’-> +TE’ | ͼ
-T -> FT’
-T’-> *FT’ | ͼ
-F ->(E) | i
-Valid inputs: i+i*i ; i+i ; i*i ; i*i+i*i+i
-invalid inputs: i+*+i ; i+i*
+/*
+Design of Non-Recursive Predictive Parsing for the grammar
+E -> TEdash
+Edash-> +TEdash | ͼ
+T -> FTdash
+Tdash-> *FTdash | ͼ
+F -> (E) | i
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-int E(), Edash(), T(), Tdash(), F();
-char *ip;
-char string[50];
+int i = 0, top = 0;
+char stack[20], ip[20];
+void push(char c)
+{
+    if (top >= 20)
+        printf("Stack Overflow");
+    else
+        stack[top++] = c;
+}
+void pop(void)
+{
+    if (top < 0)
+        printf("Stack underflow");
+    else
+        top--;
+}
+void error(void)
+{
+    printf("\n\nSyntax Error!!!! String is invalid\n");
+    exit(0);
+}
 int main()
 {
-    printf("Enter the string\n");
-    scanf("%s", string);
-    ip = string;
-    printf("\n\nInput\tAction\n--------------------------------\n");
-    if (E())
+    int n;
+
+    printf("The given grammar is\n\n");
+    printf("E -> TEdash\n");
+    printf("Edash -> +TEdash | epsilon\n");
+    printf("T -> FTdash\n");
+    printf("Tdash-> *FTdash | epsilon\n");
+    printf("F -> (E) | i \n\n");
+    printf("Enter the string to be parsed:\n");
+    scanf("%s", ip);
+    n = strlen(ip);
+    ip[n] = '$';
+    ip[n + 1] = '\0';
+    push('$');
+    push('E');
+    while (ip[i] != '\0')
     {
-        printf("\n--------------------------------\n");
-        printf("\n String is successfully parsed\n");
-    }
-    else
-    {
-        printf("\n--------------------------------\n");
-        printf("Error in parsing String\n");
-    }
-}
-int E()
-{
-    printf("%s\tE->TE' \n", ip);
-    if (T())
-    {
-        if (Edash())
+        if (ip[i] == '$' && stack[top - 1] == '$')
         {
+            printf("\n\n Successful parsing of string \n");
             return 1;
         }
-        else
-            return 0;
-    }
-    else
-
-        return 0;
-}
-int Edash()
-{
-    if (*ip == '+')
-    {
-        printf("%s\tE'->+TE' \n", ip);
-        ip++;
-        if (T())
+        else if (ip[i] == stack[top - 1])
         {
-            if (Edash())
+            printf("\nmatch of %c ", ip[i]);
+            i++;
+            pop();
+        }
+        else
+        {
+            if (stack[top - 1] == 'E' && (ip[i] == 'i' || ip[i] == '('))
             {
-                return 1;
+                printf(" \n E -> TEdash");
+                pop();
+                push('A');
+                push('T');
+            }
+            else if (stack[top - 1] == 'A' && ip[i] == '+')
+            {
+                printf("\n Edash-> +TEdash");
+                pop();
+                push('A');
+                push('T');
+                push('+');
+            }
+            else if (stack[top - 1] == 'A' && (ip[i] == ')' || ip[i] == '$'))
+            {
+                printf("\n Edash -> epsilon");
+                pop();
+            }
+            else if (stack[top - 1] == 'T' && (ip[i] == 'i' || ip[i] == '('))
+            {
+                printf("\n T -> FTdash");
+                pop();
+                push('B');
+                push('F');
+            }
+            else if (stack[top - 1] == 'B' && (ip[i] == '+' || ip[i] == ')' || ip[i] == '$'))
+            {
+                printf("\n Tdash -> epsilon");
+                pop();
+            }
+            else if (stack[top - 1] == 'B' && ip[i] == '*')
+            {
+                printf("\n Tdash-> *FTdash");
+                pop();
+                push('B');
+                push('F');
+                push('*');
+            }
+            else if (stack[top - 1] == 'F' && ip[i] == 'i')
+            {
+                printf("\n F -> i");
+                pop();
+                push('i');
+            }
+            else if (stack[top - 1] == 'F' && ip[i] == '(')
+            {
+                printf("\n F -> (E)");
+                pop();
+                push(')');
+                push('E');
+                push('(');
             }
             else
-                return 0;
+                error();
         }
-        else
-            return 0;
     }
-    else
-    {
-        printf("%s\tE'->^ \n", ip);
-        return 1;
-    }
-}
-int T()
-{
-    printf("%s\tT->FT' \n", ip);
-    if (F())
-    {
-        if (Tdash())
-        {
-            return 1;
-        }
-        else
-            return 0;
-    }
-    else
-        return 0;
-}
-int Tdash()
-{
-    if (*ip == '*')
-    {
-        printf("%s\tT'->*FT' \n", ip);
-        ip++;
-        if (F())
-        {
-            if (Tdash())
-            {
-                return 1;
-            }
-            else
-                return 0;
-        }
-        else
-            return 0;
-    }
-    else
-
-    {
-        printf("%s\tT'->^ \n", ip);
-        return 1;
-    }
-}
-int F()
-{
-    if (*ip == '(')
-    {
-        printf("%s\tF->(E) \n", ip);
-        ip++;
-        if (E())
-        {
-            if (*ip == ')')
-            {
-                ip++;
-                return 1;
-            }
-            else
-                return 0;
-        }
-        else
-            return 0;
-    }
-    else if (*ip == 'i')
-    {
-        ip++;
-        printf("%s\tF->id \n", ip);
-        return 1;
-    }
-    else
-        return 0;
-}
+} //end of main
